@@ -1,0 +1,7 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+firing_log.json
+runs/
+models/*/weights/*.pt

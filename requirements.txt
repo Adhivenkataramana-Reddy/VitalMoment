@@ -1,0 +1,7 @@
+# Python 3.13 runtime
+opencv-python>=4.10,<5
+numpy>=2.1,<3
+
+# Optional: enables MediaPipe hand landmarks when a compatible build is available.
+# VitalMoment automatically falls back to OpenCV hand/contact estimation if absent.
+# mediapipe>=0.10.30
