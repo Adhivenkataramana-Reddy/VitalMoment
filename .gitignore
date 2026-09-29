@@ -1,0 +1,13 @@
+# Python virtual environments
+venv/
+env/
+__pycache__/
+*.pyc
+
+# YOLO output and large model weights
+runs/
+*.pt
+
+# System files
+.DS_Store
+Thumbs.db
