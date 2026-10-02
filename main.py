@@ -18,13 +18,29 @@ from src.protocol_engine.engine import FirstAidProtocolEngine
 
 def draw_overlay(frame, payload, decision):
     out = frame.copy()
+    obs = payload.get("observation", {})
+
+    # --- Draw the ROI search region (yellow) so focus narrowing is visible ---
+    roi = payload.get("_roi_rect") or (obs.get("_roi_rect") if obs else None)
+    # Also check the raw detector output stashed in the payload
+    raw_roi = payload.get("_raw", {}).get("_roi_rect") if isinstance(payload.get("_raw"), dict) else None
+    roi = roi or raw_roi
+    if roi:
+        rx, ry, rw, rh = [int(v) for v in roi]
+        # Draw a dashed-style rectangle (two offset rects give a visual cue)
+        cv2.rectangle(out, (rx, ry), (rx + rw, ry + rh), (0, 255, 255), 1)
+        cv2.putText(out, "ROI", (rx + 4, ry + 16), cv2.FONT_HERSHEY_SIMPLEX, .45, (0, 255, 255), 1)
+
     for injury in payload["scene_understanding"]["injuries"]:
         x1, y1, x2, y2 = map(int, injury["bounding_box"])
         cv2.rectangle(out, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        cv2.putText(out, f"WOUND {injury['confidence']:.2f}", (x1, max(20, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, .6, (0, 0, 255), 2)
+        label = f"WOUND {injury['confidence']:.2f}"
+        cv2.putText(out, label, (x1, max(20, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, .6, (0, 0, 255), 2)
+
     facts = payload["facts"]
+    blood_pct = obs.get("blood_pixels_pct", 0.0) if obs else 0.0
     lines = [
-        f"BLEEDING: {facts['bleeding'].upper()}   CONF: {facts['confidence']:.2f}",
+        f"BLEEDING: {facts['bleeding'].upper()}   CONF: {facts['confidence']:.2f}   BLOOD: {blood_pct:.1f}%",
         f"PRESSURE: {'YES' if facts['pressure_applied'] else 'NO'}   GAUZE: {'YES' if facts['gauze_present'] else 'NO'}",
         f"RULE: {decision['rule_fired']}",
         decision["guidance"],
@@ -50,7 +66,10 @@ def run(camera: int = 0, width: int = 960, height: int = 540):
     last_print = 0.0
     try:
         while True:
-            ok, frame = cap.read()
+            try:
+                ok, frame = cap.read()
+            except KeyboardInterrupt:
+                break
             if not ok:
                 continue
             timestamp = time.monotonic() - start

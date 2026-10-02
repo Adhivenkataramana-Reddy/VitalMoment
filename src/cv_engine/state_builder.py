@@ -43,7 +43,7 @@ class StateBuilder:
 
     def observation_from_raw(self, raw: Dict[str, Any], timestamp: float) -> Dict[str, Any]:
         pct = float(raw["blood_pixels_pct"])
-        severe = pct > 6.0
+        severe = pct > 4.0
         obs = {
             "timestamp": timestamp,
             "wound_visible": bool(raw.get("wound_contour_present")),
@@ -118,7 +118,7 @@ class StateBuilder:
         avg = sum(o["blood_pixels_pct"] for o in obs) / len(obs)
         first_avg = sum(o["blood_pixels_pct"] for o in obs[:max(1, len(obs)//3)]) / max(1, len(obs)//3)
         last_avg = sum(o["blood_pixels_pct"] for o in obs[-max(1, len(obs)//3):]) / max(1, len(obs)//3)
-        if avg > 6.0:
+        if avg > 4.0:
             bleeding = "severe"
         elif last_avg < first_avg * 0.75 and first_avg > 1.5:
             bleeding = "reducing"
@@ -182,6 +182,7 @@ class StateBuilder:
             "observation": obs,
             "facts": facts,
             "discard_log": list(self.discards[-10:]),
+            "_roi_rect": raw.get("_roi_rect"),
         }
 
     def close(self):
